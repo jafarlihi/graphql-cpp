@@ -1,7 +1,7 @@
 enum class TokenKind
 {
     SOF,
-    EOF,
+    EOFILE,
     BANG,
     DOLLAR,
     AMP,
