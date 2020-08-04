@@ -3,14 +3,12 @@
 
 class Lexer
 {
-private:
+public:
+    Source source;
     Token *lastToken;
     Token *token;
     int line;
     int lineStart;
-
-public:
-    Source source;
     Lexer(Source source);
     Token *advance();
     Token *lookahead();
