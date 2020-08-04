@@ -35,4 +35,12 @@ Token *Lexer::lookahead()
 
 Token *readToken(Lexer *lexer, Token *prev)
 {
+    Source source = lexer->source;
+    std::string body = source.body;
+    int bodyLength = body.length();
+
+    int pos = prev->end;
+    while (pos < bodyLength)
+    {
+    }
 }

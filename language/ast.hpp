@@ -4,7 +4,8 @@
 
 class Token
 {
-private:
+public:
+    TokenKind kind;
     int start;
     int end;
     int line;
@@ -12,8 +13,5 @@ private:
     std::string *value;
     Token *prev;
     Token *next;
-
-public:
-    TokenKind kind;
     Token(TokenKind kind, int start, int end, int line, int column, Token *prev, std::string *value);
 };

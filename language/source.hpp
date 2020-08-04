@@ -8,12 +8,10 @@ struct Location
 
 class Source
 {
-private:
+public:
     std::string body;
     std::string name;
     Location locationOffset;
-
-public:
     Source(std::string body, std::string name, Location locationOffset);
     Source();
 };
