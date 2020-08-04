@@ -20,4 +20,19 @@ Token *Lexer::advance()
 
 Token *Lexer::lookahead()
 {
+    Token *token = this->token;
+    if (token->kind != TokenKind::EOFILE)
+    {
+        do
+        {
+            if (token->next != nullptr)
+                token = token->next;
+            else
+                token->next = readToken(this, token);
+        } while (token->kind != TokenKind::COMMENT)
+    }
+}
+
+Token *readToken(Lexer *lexer, Token *prev)
+{
 }
