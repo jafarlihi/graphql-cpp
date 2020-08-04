@@ -1,5 +1,4 @@
-enum class TokenKind
-{
+enum class TokenKind {
     SOF,
     EOFILE,
     BANG,

@@ -1,14 +1,12 @@
 #include <string>
 
-struct Location
-{
+struct Location {
     int line;
     int column;
 };
 
-class Source
-{
-public:
+class Source {
+   public:
     std::string body;
     std::string name;
     Location locationOffset;

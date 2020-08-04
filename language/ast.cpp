@@ -1,7 +1,7 @@
 #include "ast.hpp"
 
-Token::Token(TokenKind kind, int start, int end, int line, int column, Token *prev, std::string *value)
-{
+Token::Token(TokenKind kind, int start, int end, int line, int column,
+             Token *prev, std::string *value) {
     this->kind = kind;
     this->start = start;
     this->end = end;

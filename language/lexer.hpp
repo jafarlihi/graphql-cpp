@@ -1,9 +1,8 @@
-#include "source.hpp"
 #include "ast.hpp"
+#include "source.hpp"
 
-class Lexer
-{
-public:
+class Lexer {
+   public:
     Source source;
     Token *lastToken;
     Token *token;
