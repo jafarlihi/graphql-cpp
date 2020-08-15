@@ -12,6 +12,6 @@ class Token {
     std::string *value;
     Token *prev;
     Token *next;
-    Token(TokenKind kind, int start, int end, int line, int column, Token *prev,
-          std::string *value);
+    Token(TokenKind kind, int start, int end, int line, int column,
+          Token *prev = nullptr, std::string *value = nullptr);
 };

@@ -1,33 +1,16 @@
 #include "lexer.hpp"
 
-Lexer::Lexer(Source source) {
-    Token *startOfFileToken =
-        new Token(TokenKind::SOF, 0, 0, 0, 0, nullptr, nullptr);
+Token *readComment(Source source, int start, int line, int col, Token *prev) {}
 
-    this->source = source;
-    this->lastToken = startOfFileToken;
-    this->token = startOfFileToken;
-    this->line = 1;
-    this->lineStart = 0;
-}
+Token *readBlockString(Source source, int start, int line, int col, Token *prev,
+                       Lexer *lexer) {}
 
-Token *Lexer::advance() {
-    this->lastToken = this->token;
-    this->token = this->lookahead();
-    return this->token;
-}
+Token *readString(Source source, int start, int line, int col, Token *prev) {}
 
-Token *Lexer::lookahead() {
-    Token *token = this->token;
-    if (token->kind != TokenKind::EOFILE) {
-        do {
-            if (token->next != nullptr)
-                token = token->next;
-            else
-                token->next = readToken(this, token);
-        } while (token->kind != TokenKind::COMMENT);
-    }
-}
+Token *readNumber(Source source, int start, int firstCode, int line, int col,
+                  Token *prev) {}
+
+Token *readName(Source source, int start, int line, int col, Token *prev) {}
 
 Token *readToken(Lexer *lexer, Token *prev) {
     Source source = lexer->source;
@@ -62,52 +45,54 @@ Token *readToken(Lexer *lexer, Token *prev) {
                 lexer->lineStart = pos;
                 continue;
             case 33:  //  !
-                return new Token(TokenKind::BANG, pos, pos + 1, line, col, prev,
-                                 nullptr);
+                return new Token(TokenKind::BANG, pos, pos + 1, line, col,
+                                 prev);
+
             case 35:  //  #
                 return readComment(source, pos, line, col, prev);
             case 36:  //  $
                 return new Token(TokenKind::DOLLAR, pos, pos + 1, line, col,
-                                 prev, nullptr);
+                                 prev);
             case 38:  //  &
-                return new Token(TokenKind::AMP, pos, pos + 1, line, col, prev,
-                                 nullptr);
+                return new Token(TokenKind::AMP, pos, pos + 1, line, col, prev);
+
             case 40:  //  (
                 return new Token(TokenKind::PAREN_L, pos, pos + 1, line, col,
-                                 prev, nullptr);
+                                 prev);
             case 41:  //  )
                 return new Token(TokenKind::PAREN_R, pos, pos + 1, line, col,
-                                 prev, nullptr);
+                                 prev);
             case 46:  //  .
                 if (int(body[pos + 1]) == 46 && int(body[pos + 2]) == 46) {
                     return new Token(TokenKind::SPREAD, pos, pos + 3, line, col,
-                                     prev, nullptr);
+                                     prev);
                 }
                 break;
             case 58:  //  :
                 return new Token(TokenKind::COLON, pos, pos + 1, line, col,
-                                 prev, nullptr);
+                                 prev);
             case 61:  //  =
                 return new Token(TokenKind::EQUALS, pos, pos + 1, line, col,
-                                 prev, nullptr);
+                                 prev);
             case 64:  //  @
-                return new Token(TokenKind::AT, pos, pos + 1, line, col, prev,
-                                 nullptr);
+                return new Token(TokenKind::AT, pos, pos + 1, line, col, prev);
+
             case 91:  //  [
                 return new Token(TokenKind::BRACKET_L, pos, pos + 1, line, col,
-                                 prev, nullptr);
+                                 prev);
             case 93:  //  ]
                 return new Token(TokenKind::BRACKET_R, pos, pos + 1, line, col,
-                                 prev, nullptr);
+                                 prev);
             case 123:  // {
                 return new Token(TokenKind::BRACE_L, pos, pos + 1, line, col,
-                                 prev, nullptr);
+                                 prev);
             case 124:  // |
-                return new Token(TokenKind::PIPE, pos, pos + 1, line, col, prev,
-                                 nullptr);
+                return new Token(TokenKind::PIPE, pos, pos + 1, line, col,
+                                 prev);
+
             case 125:  // }
                 return new Token(TokenKind::BRACE_R, pos, pos + 1, line, col,
-                                 prev, nullptr);
+                                 prev);
             case 34:  //  "
                 if (bodyLength > pos + 2 && int(body[pos + 1]) == 34 &&
                     int(body[pos + 2] == 34)) {
@@ -182,16 +167,36 @@ Token *readToken(Lexer *lexer, Token *prev) {
                 return readName(source, pos, line, col, prev);
         }
     }
+    int line = lexer->line;
+    int col = 1 + pos - lexer->lineStart;
+    return new Token(TokenKind::EOFILE, bodyLength, bodyLength, line, col,
+                     prev);
 }
 
-Token *readComment(Source source, int start, int line, int col, Token *prev) {}
+Lexer::Lexer(Source source) {
+    Token *startOfFileToken = new Token(TokenKind::SOF, 0, 0, 0, 0);
 
-Token *readBlockString(Source source, int start, int line, int col, Token *prev,
-                       Lexer *lexer) {}
+    this->source = source;
+    this->lastToken = startOfFileToken;
+    this->token = startOfFileToken;
+    this->line = 1;
+    this->lineStart = 0;
+}
 
-Token *readString(Source source, int start, int line, int col, Token *prev) {}
+Token *Lexer::advance() {
+    this->lastToken = this->token;
+    this->token = this->lookahead();
+    return this->token;
+}
 
-Token *readNumber(Source source, int start, int firstCode, int line, int col,
-                  Token *prev) {}
-
-Token *readName(Source source, int start, int line, int col, Token *prev) {}
+Token *Lexer::lookahead() {
+    Token *token = this->token;
+    if (token->kind != TokenKind::EOFILE) {
+        do {
+            if (token->next != nullptr)
+                token = token->next;
+            else
+                token->next = readToken(this, token);
+        } while (token->kind != TokenKind::COMMENT);
+    }
+}
