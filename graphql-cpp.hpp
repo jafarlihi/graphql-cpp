@@ -196,7 +196,6 @@ namespace graphql {
             int line;
             int line_start;
         public:
-            int position_after_whitespace(std::string body, int start_position);
             Token *read_comment(int start, int line, int col, Token *prev);
             Token *read_number(int start, char &character, int line, int col, Token *prev);
             int read_digits(int start, char &character);
@@ -270,6 +269,32 @@ namespace graphql {
                 }
 
                 throw GraphQLSyntaxError(source, pos, unexpected_character_message(character));
+            }
+
+            int position_after_whitespace(std::string body, int start_position) {
+                int body_length = body.length();
+                int position = start_position;
+                while (position < body_length) {
+                    char &character = body[position];
+                    std::string character_set = " \t,\ufeff";
+                    if (character_set.find(character) != std::string::npos) {
+                        position += 1;
+                    } else if (character == '\n') {
+                        position += 1;
+                        this->line += 1;
+                        this->line_start = position;
+                    } else if (character == '\r') {
+                        if (body[position + 1] == '\n')
+                            position += 2;
+                        else
+                            position += 1;
+                        this->line += 1;
+                        this->line_start = position;
+                    } else {
+                        break;
+                    }
+                }
+                return position;
             }
     };
 }
