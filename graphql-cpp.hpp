@@ -196,7 +196,6 @@ namespace graphql {
             int line;
             int line_start;
         public:
-            Token *read_comment(int start, int line, int col, Token *prev);
             Token *read_number(int start, char &character, int line, int col, Token *prev);
             int read_digits(int start, char &character);
             Token *read_string(int start, int line, int col, Token *prev);
@@ -269,6 +268,21 @@ namespace graphql {
                 }
 
                 throw GraphQLSyntaxError(source, pos, unexpected_character_message(character));
+            }
+
+            Token *read_comment(int start, int line, int col, Token *prev) {
+                std::string body = this->source->body;
+                int body_length = body.length();
+                int position = start;
+                while (true) {
+                    position += 1;
+                    if (position >= body_length)
+                        break;
+                    char &character = body[position];
+                    if (character < ' ' && character != '\t')
+                        break;
+                }
+                return new Token(TokenKind::COMMENT, start, position, line, col, prev, new std::string(&body[start + 1], &body[position]));
             }
 
             int position_after_whitespace(std::string body, int start_position) {
