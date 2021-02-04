@@ -113,6 +113,17 @@ namespace graphql {
             }
     };
 
+    std::vector<int> *position_to_position_list(int position) {
+        std::vector<int> *result = new std::vector<int>();
+        result->push_back(position);
+        return result;
+    }
+
+    class GraphQLSyntaxError : public GraphQLError {
+        public:
+            GraphQLSyntaxError(Source *source, int position, std::string description) : GraphQLError(fmt::format("Syntax Error: {}", description), source, position_to_position_list(position)) { }
+    };
+
     class Token {
         public:
             TokenKind kind;
