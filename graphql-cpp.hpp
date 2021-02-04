@@ -200,7 +200,6 @@ namespace graphql {
             int line;
             int line_start;
         public:
-            int read_digits(int start, char &character);
             Token *read_string(int start, int line, int col, Token *prev);
             Token *read_block_string(int start, int line, int col, Token *prev);
             Token *read_name(int start, int line, int col, Token *prev);
@@ -337,6 +336,21 @@ namespace graphql {
                 else
                     kind = TokenKind::INT;
                 return new Token(kind, start, position, line, col, prev, new std::string(&body[start], &body[position]));
+            }
+
+            int read_digits(int start, char &character) {
+                Source source = *this->source;
+                std::string body = source.body;
+                int position = start;
+                char current_character = character;
+                while ('0' <= current_character && current_character <= '9') {
+                    position += 1;
+                    current_character = body[position];
+                }
+                if (position == start) {
+                    throw GraphQLSyntaxError(this->source, position, fmt::format("Invalid number, expected digit but got: {}", current_character));
+                }
+                return position;
             }
 
             int position_after_whitespace(std::string body, int start_position) {
