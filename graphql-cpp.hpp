@@ -188,6 +188,10 @@ namespace graphql {
         return fmt::format("Cannot parse the unexpected character {}.", character);
     }
 
+    bool is_name_start(char &character) {
+        return character == '_' || ('A' <= character && character <= 'Z') || ('a' <= character && character <= 'z');
+    }
+
     class Lexer {
         private:
             Source *source;
@@ -196,7 +200,6 @@ namespace graphql {
             int line;
             int line_start;
         public:
-            Token *read_number(int start, char &character, int line, int col, Token *prev);
             int read_digits(int start, char &character);
             Token *read_string(int start, int line, int col, Token *prev);
             Token *read_block_string(int start, int line, int col, Token *prev);
@@ -283,6 +286,57 @@ namespace graphql {
                         break;
                 }
                 return new Token(TokenKind::COMMENT, start, position, line, col, prev, new std::string(&body[start + 1], &body[position]));
+            }
+
+            Token *read_number(int start, char &character, int line, int col, Token *prev) {
+                Source source = *this->source;
+                std::string body = source.body;
+                int position = start;
+                bool is_float = false;
+                char current_character = character;
+                if (current_character == '-') {
+                    position += 1;
+                    current_character = body[position];
+                }
+                if (current_character == '0') {
+                    position += 1;
+                    current_character = body[position];
+                    if ('0' <= current_character && current_character <= '9') {
+                        throw GraphQLSyntaxError(this->source, position, fmt::format("Invalid number, unexpected digit after 0: {}", current_character));
+                    }
+                } else {
+                    position = read_digits(position, current_character);
+                    current_character = body[position];
+                }
+                if (current_character == '.') {
+                    is_float = true;
+                    position += 1;
+                    current_character = body[position];
+                    position = read_digits(position, current_character);
+                    current_character = body[position];
+                }
+                if (current_character == 'e' || current_character == 'E') {
+                    is_float = true;
+                    position += 1;
+                    current_character = body[position];
+                    if (current_character == '+' || current_character == '-') {
+                        position += 1;
+                        current_character = body[position];
+                    }
+                    position = read_digits(position, current_character);
+                    current_character = body[position];
+                }
+
+                if (current_character == '.' || is_name_start(current_character)) {
+                    throw GraphQLSyntaxError(this->source, position, fmt::format("Invalid number, expected digit but got: {}", current_character));
+                }
+
+                TokenKind kind;
+                if (is_float)
+                    kind = TokenKind::FLOAT;
+                else
+                    kind = TokenKind::INT;
+                return new Token(kind, start, position, line, col, prev, new std::string(&body[start], &body[position]));
             }
 
             int position_after_whitespace(std::string body, int start_position) {
