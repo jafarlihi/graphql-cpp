@@ -4,6 +4,8 @@
 #include <unordered_set>
 #include <map>
 #include <vector>
+#include <sstream>
+#include <iterator>
 
 #include <fmt/core.h>
 
@@ -192,6 +194,19 @@ namespace graphql {
         return character == '_' || ('A' <= character && character <= 'Z') || ('a' <= character && character <= 'z');
     }
 
+    int char2hex(char &character) {
+        return (character < '0')  ? -1 :
+            (character <= '9') ? (character - '0') :
+            (character < 'A')  ? -1 :
+            (character <= 'F') ? (character - 'A' + 10) :
+            (character < 'a')  ? -1 :
+            (character <= 'f') ? (character - 'a' + 10) : -1;
+    }
+
+    int uni_char_code(std::string str) {
+        return char2hex(str[0]) << 12 | char2hex(str[1]) << 8 | char2hex(str[2]) << 4 | char2hex(str[3]);
+    }
+
     class Lexer {
         private:
             Source *source;
@@ -200,7 +215,6 @@ namespace graphql {
             int line;
             int line_start;
         public:
-            Token *read_string(int start, int line, int col, Token *prev);
             Token *read_block_string(int start, int line, int col, Token *prev);
             Token *read_name(int start, int line, int col, Token *prev);
 
@@ -351,6 +365,54 @@ namespace graphql {
                     throw GraphQLSyntaxError(this->source, position, fmt::format("Invalid number, expected digit but got: {}", current_character));
                 }
                 return position;
+            }
+
+            Token *read_string(int start, int line, int col, Token *prev) {
+                Source source = *this->source;
+                std::string body = source.body;
+                int body_length = body.length();
+                int position = start + 1;
+                int chunk_start = position;
+                std::vector<std::string> value;
+
+                while (position < body_length) {
+                    char &character = body[position];
+                    if (character == '\n' || character == '\r')
+                        break;
+                    if (character == '"') {
+                        value.push_back(std::string(&body[chunk_start], &body[position]));
+                        const char* const delimiter = "";
+                        std::ostringstream imploded_value;
+                        std::copy(value.begin(), value.end(), std::ostream_iterator<std::string>(imploded_value, delimiter));
+                        return new Token(TokenKind::STRING, start, position + 1, line, col, prev, new std::string(imploded_value.str()));
+                    }
+                    if (character < ' ' && character != '\t') {
+                        throw GraphQLSyntaxError(this->source, position, fmt::format("Invalid character within String: {}", character));
+                    }
+                    position += 1;
+                    if (character == '\\') {
+                        value.push_back(std::string(&body[chunk_start], &body[position - 1]));
+                        character = body[position];
+                        if (character == '"' || character == '/' || character == '\\' || character == '\b' || character == '\f' || character == '\n' || character == '\r' || character == '\t') {
+                            value.push_back(std::string(&body[position], &body[position + 1]));
+                        } else if (character == 'u' && position + 4 < body_length) {
+                            int code = uni_char_code(std::string(&body[position + 1], &body[position + 5]));
+                            if (code < 0) {
+                                std::string escape = std::string(&body[position], &body[position + 5]);
+                                throw GraphQLSyntaxError(this->source, position, fmt::format("Invalid character escape sequence: {}", escape));
+                            }
+                            value.push_back(std::string(1, static_cast<char>(code)));
+                            position += 4;
+                        } else {
+                            std::string escape = std::string(1, character);
+                            throw GraphQLSyntaxError(this->source, position, fmt::format("Invalid character escape sequence: {}", escape));
+                        }
+                        position += 1;
+                        chunk_start = position;
+                    }
+                }
+
+                throw GraphQLSyntaxError(this->source, position, "Unterminated string.");
             }
 
             int position_after_whitespace(std::string body, int start_position) {
