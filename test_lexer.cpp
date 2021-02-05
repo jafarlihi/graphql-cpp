@@ -42,5 +42,9 @@ int main(int argc, char *argv[]) {
     token = lex_one("\n\n\r\rfoo");
     expected_token = Token(TokenKind::NAME, 4, 7, 5, 1, nullptr, new std::string("foo"));
     assert(*token == expected_token);
+
+    token = lex_one("\n \r\n \r  foo\n");
+    expected_token = Token(TokenKind::NAME, 8, 11, 4, 3, nullptr, new std::string("foo"));
+    assert(*token == expected_token);
 }
 
