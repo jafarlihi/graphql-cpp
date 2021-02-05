@@ -252,8 +252,6 @@ namespace graphql {
             int line;
             int line_start;
         public:
-            Token *read_name(int start, int line, int col, Token *prev);
-
             Lexer(Source *source) {
                 this->source = source;
                 this->token = this->last_token = new Token(TokenKind::SOF, 0, 0, 0, 0);
@@ -490,6 +488,21 @@ namespace graphql {
 
                 throw GraphQLSyntaxError(this->source, position, "Unterminated string.");
             }
+
+
+            Token *read_name(int start, int line, int col, Token *prev) {
+                std::string body = this->source->body;
+                int body_length = body.length();
+                int position = start + 1;
+                while (position < body_length) {
+                    char &character = body[position];
+                    if (!(character == '_' || ('0' <= character && character <= '9') || ('A' <= character && character <= 'Z') || ('a' <= character && character <= 'z')))
+                        break;
+                    position += 1;
+                }
+                return new Token(TokenKind::NAME, start, position, line, col, prev, new std::string(&body[start], &body[position]));
+            }
+
 
             int position_after_whitespace(std::string body, int start_position) {
                 int body_length = body.length();
