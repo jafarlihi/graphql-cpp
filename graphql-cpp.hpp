@@ -66,7 +66,7 @@ namespace graphql {
             std::string name;
             SourceLocation *location_offset;
 
-            Source(std::string body, std::string name, SourceLocation *location_offset) {
+            Source(std::string body, std::string name = "GraphQL request", SourceLocation *location_offset = new SourceLocation(1, 1)) {
                 this->body = body;
                 this->name = name;
                 if (location_offset->line <= 0) {
@@ -147,7 +147,26 @@ namespace graphql {
                 this->prev = prev;
                 this->next = nullptr;
             }
+
+            friend bool operator==(Token &lhs, Token &rhs);
     };
+
+    bool operator==(Token &lhs, Token &rhs) {
+        if (lhs.kind != rhs.kind) return false;
+        if (lhs.start != rhs.start) return false;
+        if (lhs.end != rhs.end) return false;
+        if (lhs.line != rhs.line) return false;
+        if (lhs.column != rhs.column) return false;
+        if ((lhs.value != nullptr && rhs.value == nullptr) || (lhs.value == nullptr && rhs.value != nullptr)) return false;
+        if (lhs.value != rhs.value && *lhs.value != *rhs.value) return false;
+        /*
+        if ((lhs.prev != nullptr && rhs.prev == nullptr) || (lhs.prev == nullptr && rhs.prev != nullptr)) return false;
+        if (lhs.prev != rhs.prev && *lhs.prev != *rhs.prev) return false;
+        if ((lhs.next != nullptr && rhs.next == nullptr) || (lhs.next == nullptr && rhs.next != nullptr)) return false;
+        if (lhs.next != rhs.next && *lhs.next != *rhs.next) return false;
+        */
+        return true;
+    }
 
     std::unordered_set<TokenKind> punctuator_token_kinds {
         TokenKind::BANG,
@@ -509,7 +528,7 @@ namespace graphql {
                 int position = start_position;
                 while (position < body_length) {
                     char &character = body[position];
-                    std::string character_set = " \t,\ufeff";
+                    std::string character_set = " \t,\ufeff"; // TODO: BOM checked against correctly?
                     if (character_set.find(character) != std::string::npos) {
                         position += 1;
                     } else if (character == '\n') {
