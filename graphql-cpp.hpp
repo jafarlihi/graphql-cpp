@@ -79,7 +79,7 @@ namespace graphql {
             }
 
             SourceLocation get_location(int position) {
-                std::vector<std::string> lines = graphql::split_string(this->body.substr(0, position), "\n");
+                std::vector<std::string> lines = split_string(this->body.substr(0, position), "\n");
                 int line, column;
                 if (lines.size() > 0) {
                     line = lines.size();
@@ -207,6 +207,43 @@ namespace graphql {
         return char2hex(str[0]) << 12 | char2hex(str[1]) << 8 | char2hex(str[2]) << 4 | char2hex(str[3]);
     }
 
+    int leading_whitespace(std::string s) {
+        int i = 0;
+        int n = s.length();
+        while (i < n && (s[i] == ' ' || s[i] == '\t'))
+            i += 1;
+        return i;
+    }
+
+    int get_block_string_indentation(std::vector<std::string> lines) {
+        int common_indent = -1;
+        for (int i = 1; i < lines.size(); i++) {
+            int indent = leading_whitespace(lines[i]);
+            if (indent == lines[i].length())
+                continue;
+            if (common_indent == -1 || indent < common_indent) {
+                common_indent = indent;
+                if (common_indent == 0)
+                    break;
+            }
+        }
+        if (common_indent == -1) return 0;
+        return common_indent;
+    }
+
+    std::string *dedent_block_string_value(std::string raw_string) {
+        std::vector<std::string> lines = split_string(raw_string, "\n");
+        int common_indent = get_block_string_indentation(lines);
+        if (common_indent)
+            for (int i = 1; i < lines.size(); i++)
+                lines[i] = lines[i].substr(common_indent, lines[i].length());
+        // TODO: Remove leading and trailing blank lines
+        const char* const delimiter = "\n";
+        std::ostringstream imploded_value;
+        std::copy(lines.begin(), lines.end(), std::ostream_iterator<std::string>(imploded_value, delimiter));
+        return new std::string(imploded_value.str());
+    }
+
     class Lexer {
         private:
             Source *source;
@@ -215,7 +252,6 @@ namespace graphql {
             int line;
             int line_start;
         public:
-            Token *read_block_string(int start, int line, int col, Token *prev);
             Token *read_name(int start, int line, int col, Token *prev);
 
             Lexer(Source *source) {
@@ -409,6 +445,46 @@ namespace graphql {
                         }
                         position += 1;
                         chunk_start = position;
+                    }
+                }
+
+                throw GraphQLSyntaxError(this->source, position, "Unterminated string.");
+            }
+
+            Token *read_block_string(int start, int line, int col, Token *prev) {
+                Source source = *this->source;
+                std::string body = source.body;
+                int body_length = body.length();
+                int position = start + 3;
+                int chunk_start = position;
+                std::string raw_value = "";
+
+                while (position < body_length) {
+                    char &character = body[position];
+                    if (character == '"' && std::string(&body[position + 1], &body[position + 3]) == "\"\"") {
+                        raw_value.append(std::string(&body[chunk_start], &body[position]));
+                        return new Token(TokenKind::BLOCK_STRING, start, position + 3, line, col, prev, dedent_block_string_value(raw_value));
+                    }
+                    if (character < ' ' && character != '\t' && character != '\n' && character != '\r') {
+                        throw GraphQLSyntaxError(this->source, position, fmt::format("Invalid character within String: {}", character));
+                    }
+                    if (character == '\n') {
+                        position += 1;
+                        this->line += 1;
+                        this->line_start = position;
+                    } else if (character == '\r') {
+                        if (body[position + 1] == '\n')
+                            position += 2;
+                        else
+                            position += 1;
+                        this->line += 1;
+                        this->line_start = position;
+                    } else if (character == '\\' && std::string(&body[position + 1], &body[position + 4]) == "\"\"\"") {
+                        raw_value.append(std::string(&body[chunk_start], &body[position]));
+                        position += 4;
+                        chunk_start = position;
+                    } else {
+                        position += 1;
                     }
                 }
 
