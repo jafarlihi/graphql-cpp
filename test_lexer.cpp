@@ -13,7 +13,7 @@ Token *lex_one(std::string s) {
 int main(int argc, char *argv[]) {
     Token *token = lex_one("\ufeff foo");
     //assert(*token == Token(TokenKind::NAME, 2, 5, 1, 3, nullptr, new std::string("foo")));
-    // TODO: Broken
+    // TODO: Fix
 
     token = lex_one("foo");
     Token expected_token = Token(TokenKind::NAME, 0, 3, 1, 1, nullptr, new std::string("foo"));
@@ -70,5 +70,41 @@ int main(int argc, char *argv[]) {
     token = lex_one(",,,foo,,,");
     expected_token = Token(TokenKind::NAME, 3, 6, 1, 4, nullptr, new std::string("foo"));
     assert(*token == expected_token);
+
+    try {
+        token = lex_one("\n\n    ?\n");
+        assert(false);
+    } catch (GraphQLSyntaxError e) {
+        assert(e.message == "Syntax Error: Cannot parse the unexpected character ?.");
+    }
+
+    token = lex_one("\"\"");
+    expected_token = Token(TokenKind::STRING, 0, 2, 1, 1, nullptr, new std::string(""));
+    assert(*token == expected_token);
+
+    token = lex_one("\"simple\"");
+    expected_token = Token(TokenKind::STRING, 0, 8, 1, 1, nullptr, new std::string("simple"));
+    assert(*token == expected_token);
+
+    token = lex_one("\" white space \"");
+    expected_token = Token(TokenKind::STRING, 0, 15, 1, 1, nullptr, new std::string(" white space "));
+    assert(*token == expected_token);
+
+    token = lex_one("\"quote \\\"\"");
+    expected_token = Token(TokenKind::STRING, 0, 10, 1, 1, nullptr, new std::string("quote \""));
+    assert(*token == expected_token);
+
+    token = lex_one("\"escaped \\n\\r\\b\\t\\f\"");
+    expected_token = Token(TokenKind::STRING, 0, 20, 1, 1, nullptr, new std::string("escaped \n\r\b\t\f"));
+    assert(*token == expected_token);
+
+    token = lex_one("\"slashes \\\\ \\/\"");
+    expected_token = Token(TokenKind::STRING, 0, 15, 1, 1, nullptr, new std::string("slashes \\ /"));
+    assert(*token == expected_token);
+
+    token = lex_one("\"unicode \\u1234\\u5678\\u90AB\\uCDEF\"");
+    expected_token = Token(TokenKind::STRING, 0, 34, 1, 1, nullptr, new std::string("unicode \u1234\u5678\u90AB\uCDEF"));
+    //assert(*token == expected_token);
+    // TODO: Fix
 }
 

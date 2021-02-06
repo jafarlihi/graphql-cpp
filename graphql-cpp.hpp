@@ -263,6 +263,22 @@ namespace graphql {
         return new std::string(imploded_value.str());
     }
 
+    char get_escaped_character(char &character) {
+        switch (character) {
+            case 'b':
+                return '\b';
+            case 'f':
+                return '\f';
+            case 'n':
+                return '\n';
+            case 'r':
+                return '\r';
+            case 't':
+                return '\t';
+        }
+        return '\n';
+    }
+
     class Lexer {
         private:
             Source *source;
@@ -446,8 +462,10 @@ namespace graphql {
                     if (character == '\\') {
                         value.push_back(std::string(&body[chunk_start], &body[position - 1]));
                         character = body[position];
-                        if (character == '"' || character == '/' || character == '\\' || character == '\b' || character == '\f' || character == '\n' || character == '\r' || character == '\t') {
+                        if (character == '"' || character == '/' || character == '\\') {
                             value.push_back(std::string(&body[position], &body[position + 1]));
+                        } else if (character == 'b' || character == 'f' || character == 'n' || character == 'r' || character == 't') {
+                            value.push_back(std::string(1, get_escaped_character(character)));
                         } else if (character == 'u' && position + 4 < body_length) {
                             int code = uni_char_code(std::string(&body[position + 1], &body[position + 5]));
                             if (code < 0) {
