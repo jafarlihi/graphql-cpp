@@ -46,7 +46,13 @@ namespace graphql {
                 this->line = line;
                 this->column = column;
             }
+
+            friend bool operator==(const SourceLocation &lhs, const SourceLocation &rhs);
     };
+
+    bool operator==(const SourceLocation &lhs, const SourceLocation &rhs) {
+        return lhs.line == rhs.line && rhs.column == lhs.column;
+    }
 
     std::vector<std::string> split_string(const std::string &str, const std::string &delimiter) {
         std::vector<std::string> strings;
@@ -123,7 +129,8 @@ namespace graphql {
 
     class GraphQLSyntaxError : public GraphQLError {
         public:
-            GraphQLSyntaxError(Source *source, int position, std::string description) : GraphQLError(fmt::format("Syntax Error: {}", description), source, position_to_position_list(position)) { }
+            std::string description;
+            GraphQLSyntaxError(Source *source, int position, std::string description) : GraphQLError(fmt::format("Syntax Error: {}", description), source, position_to_position_list(position)), description{description} { }
     };
 
     class Token {
@@ -160,11 +167,11 @@ namespace graphql {
         if ((lhs.value != nullptr && rhs.value == nullptr) || (lhs.value == nullptr && rhs.value != nullptr)) return false;
         if (lhs.value != rhs.value && *lhs.value != *rhs.value) return false;
         /*
-        if ((lhs.prev != nullptr && rhs.prev == nullptr) || (lhs.prev == nullptr && rhs.prev != nullptr)) return false;
-        if (lhs.prev != rhs.prev && *lhs.prev != *rhs.prev) return false;
-        if ((lhs.next != nullptr && rhs.next == nullptr) || (lhs.next == nullptr && rhs.next != nullptr)) return false;
-        if (lhs.next != rhs.next && *lhs.next != *rhs.next) return false;
-        */
+           if ((lhs.prev != nullptr && rhs.prev == nullptr) || (lhs.prev == nullptr && rhs.prev != nullptr)) return false;
+           if (lhs.prev != rhs.prev && *lhs.prev != *rhs.prev) return false;
+           if ((lhs.next != nullptr && rhs.next == nullptr) || (lhs.next == nullptr && rhs.next != nullptr)) return false;
+           if (lhs.next != rhs.next && *lhs.next != *rhs.next) return false;
+           */
         return true;
     }
 
@@ -250,17 +257,37 @@ namespace graphql {
         return common_indent;
     }
 
+    bool is_blank_string(std::string s) {
+        for (int i = 0; i < s.length(); i++)
+            if (!std::isspace(s[i]))
+                return false;
+        return true;
+    }
+
     std::string *dedent_block_string_value(std::string raw_string) {
         std::vector<std::string> lines = split_string(raw_string, "\n");
         int common_indent = get_block_string_indentation(lines);
         if (common_indent)
             for (int i = 1; i < lines.size(); i++)
                 lines[i] = lines[i].substr(common_indent, lines[i].length());
-        // TODO: Remove leading and trailing blank lines
-        const char* const delimiter = "\n";
-        std::ostringstream imploded_value;
-        std::copy(lines.begin(), lines.end(), std::ostream_iterator<std::string>(imploded_value, delimiter));
-        return new std::string(imploded_value.str());
+        int i = 0;
+        while (i < lines.size() && is_blank_string(lines[i]))
+            i++;
+        if (i > 0)
+            lines.erase(lines.begin(), lines.begin() + i);
+        i = lines.size() - 1;
+        while (i > 0 && is_blank_string(lines[i]))
+            i--;
+        if (i < lines.size() - 1 && i >= 0)
+            lines.erase(lines.begin() + i, lines.end());
+        if (lines.size() > 0) {
+            const char* const delimiter = "\n";
+            std::ostringstream imploded_value;
+            std::copy(lines.begin(), lines.end(), std::ostream_iterator<std::string>(imploded_value, delimiter));
+            return new std::string(imploded_value.str());
+        } else {
+            return new std::string("");
+        }
     }
 
     char get_escaped_character(char &character) {
