@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <sstream>
+#include <ostream>
 #include <iterator>
 
 #include <fmt/core.h>
@@ -241,9 +242,14 @@ namespace graphql {
         return i;
     }
 
-    int get_block_string_indentation(std::vector<std::string> lines) {
+    int get_block_string_indentation(std::vector<std::string> lines, bool trailing_culled) {
         int common_indent = -1;
-        for (int i = 1; i < lines.size(); i++) {
+        int i = -1;
+        if (trailing_culled)
+            i = 0;
+        else
+            i = 1;
+        for (; i < lines.size(); i++) {
             int indent = leading_whitespace(lines[i]);
             if (indent == lines[i].length())
                 continue;
@@ -264,26 +270,66 @@ namespace graphql {
         return true;
     }
 
+    template <class T, class charT=char, class traits=std::char_traits<charT>>
+        class infix_ostream_iterator : public std::iterator<std::output_iterator_tag, void, void, void, void> {
+            std::basic_ostream<charT, traits> *os;
+            charT const* delimiter;
+            bool first_elem;
+            public:
+            typedef charT char_type;
+            typedef traits traits_type;
+            typedef std::basic_ostream<charT, traits> ostream_type;
+            infix_ostream_iterator(ostream_type& s) : os(&s), delimiter(0), first_elem(true) {}
+            infix_ostream_iterator(ostream_type& s, charT const *d) : os(&s), delimiter(d), first_elem(true) {}
+            infix_ostream_iterator<T, charT, traits>& operator=(T const &item) {
+                if (!first_elem && delimiter != 0)
+                    *os << delimiter;
+                *os << item;
+                first_elem = false;
+                return *this;
+            }
+            infix_ostream_iterator<T, charT, traits> &operator*() {
+                return *this;
+            }
+            infix_ostream_iterator<T, charT, traits> &operator++() {
+                return *this;
+            }
+            infix_ostream_iterator<T, charT, traits> &operator++(int) {
+                return *this;
+            }
+        };
+
     std::string *dedent_block_string_value(std::string raw_string) {
         std::vector<std::string> lines = split_string(raw_string, "\n");
-        int common_indent = get_block_string_indentation(lines);
-        if (common_indent)
-            for (int i = 1; i < lines.size(); i++)
-                lines[i] = lines[i].substr(common_indent, lines[i].length());
+
         int i = 0;
+        bool trailing_culled = false;
         while (i < lines.size() && is_blank_string(lines[i]))
             i++;
-        if (i > 0)
+        if (i > 0) {
             lines.erase(lines.begin(), lines.begin() + i);
+            trailing_culled = true;
+        }
         i = lines.size() - 1;
         while (i > 0 && is_blank_string(lines[i]))
             i--;
         if (i < lines.size() - 1 && i >= 0)
-            lines.erase(lines.begin() + i, lines.end());
+            lines.erase(lines.begin() + i + 1, lines.end());
+
+        int common_indent = get_block_string_indentation(lines, trailing_culled);
+        if (common_indent) {
+            if (trailing_culled)
+                i = 0;
+            else
+                i = 1;
+            for (; i < lines.size(); i++)
+                lines[i] = lines[i].substr(common_indent, lines[i].length());
+        }
+
         if (lines.size() > 0) {
             const char* const delimiter = "\n";
             std::ostringstream imploded_value;
-            std::copy(lines.begin(), lines.end(), std::ostream_iterator<std::string>(imploded_value, delimiter));
+            std::copy(lines.begin(), lines.end(), infix_ostream_iterator<std::string>(imploded_value, delimiter));
             return new std::string(imploded_value.str());
         } else {
             return new std::string("");

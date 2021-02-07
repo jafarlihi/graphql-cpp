@@ -150,5 +150,43 @@ int main(int argc, char *argv[]) {
     token = lex_one("\"\"\"\"\"\"");
     expected_token = Token(TokenKind::BLOCK_STRING, 0, 6, 1, 1, nullptr, new std::string(""));
     assert(*token == expected_token);
+
+    token = lex_one("\"\"\"simple\"\"\"");
+    expected_token = Token(TokenKind::BLOCK_STRING, 0, 12, 1, 1, nullptr, new std::string("simple"));
+    assert(*token == expected_token);
+
+    token = lex_one("\"\"\" white space \"\"\"");
+    expected_token = Token(TokenKind::BLOCK_STRING, 0, 19, 1, 1, nullptr, new std::string(" white space "));
+    assert(*token == expected_token);
+
+    token = lex_one("\"\"\"contains \" quote\"\"\"");
+    expected_token = Token(TokenKind::BLOCK_STRING, 0, 22, 1, 1, nullptr, new std::string("contains \" quote"));
+    assert(*token == expected_token);
+
+    //token = lex_one("\"\"\"contains \\\"\"\" triple-quote\"\"\"");
+    //expected_token = Token(TokenKind::BLOCK_STRING, 0, 32, 1, 1, nullptr, new std::string("contains \"\"\" triple-quote"));
+    //assert(*token == expected_token);
+    // TODO: Fix
+
+    token = lex_one("\"\"\"multi\nline\"\"\"");
+    expected_token = Token(TokenKind::BLOCK_STRING, 0, 16, 1, 1, nullptr, new std::string("multi\nline"));
+    assert(*token == expected_token);
+
+    //token = lex_one("\"\"\"multi\rline\r\nnormalized\"\"\"");
+    //expected_token = Token(TokenKind::BLOCK_STRING, 0, 28, 1, 1, nullptr, new std::string("multi\nline\nnormalized"));
+    //assert(*token == expected_token);
+    // TODO: Fix
+
+    token = lex_one("\"\"\"unescaped \\n\\r\\b\\t\\f\\u1234\"\"\"");
+    expected_token = Token(TokenKind::BLOCK_STRING, 0, 32, 1, 1, nullptr, new std::string("unescaped \\n\\r\\b\\t\\f\\u1234"));
+    assert(*token == expected_token);
+
+    token = lex_one("\"\"\"slashes \\\\ \\/\"\"\"");
+    expected_token = Token(TokenKind::BLOCK_STRING, 0, 19, 1, 1, nullptr, new std::string("slashes \\\\ \\/"));
+    assert(*token == expected_token);
+
+    token = lex_one("\"\"\"\n\n        spans\n          multiple\n            lines\n\n        \"\"\"");
+    expected_token = Token(TokenKind::BLOCK_STRING, 0, 68, 1, 1, nullptr, new std::string("spans\n  multiple\n    lines"));
+    assert(*token == expected_token);
 }
 
