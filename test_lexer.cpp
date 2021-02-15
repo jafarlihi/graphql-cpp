@@ -188,5 +188,100 @@ int main(int argc, char *argv[]) {
     token = lex_one("\"\"\"\n\n        spans\n          multiple\n            lines\n\n        \"\"\"");
     expected_token = Token(TokenKind::BLOCK_STRING, 0, 68, 1, 1, nullptr, new std::string("spans\n  multiple\n    lines"));
     assert(*token == expected_token);
+
+    /*token = lex_second("\"\"\""
+            ""
+            "        spans"
+            "          multiple"
+            "            lines"
+            ""
+            "        \n \"\"\" second_token"
+            );
+    expected_token = Token(TokenKind::NAME, 71, 83, 8, 6, nullptr, new std::string("second_token"));
+    std::cout << token->start << " " << token->end << " " << token->column << " " << token->line << std::endl;
+    assert(*token == expected_token);*/
+    // TODO: Fix
+
+    assert_syntax_error("\"\"\"", "Unterminated string.", SourceLocation(1, 4));
+    assert_syntax_error("\"\"\"no end quite", "Unterminated string.", SourceLocation(1, 16));
+    //assert_syntax_error("\"\"\"contains unescaped \x07 control char\"\"\"", "Invalid character within String: '\\x07'.", SourceLocation(1, 23));
+    //assert_syntax_error("\"\"\"null-byte is not \x00 end of file\"\"\"", "Invalid character within String: '\\x00'.", SourceLocation(1, 21));
+    // TODO: Fix
+
+    token = lex_one("0");
+    expected_token = Token(TokenKind::INT, 0, 1, 1, 1, nullptr, new std::string("0"));
+    assert(*token == expected_token);
+
+    token = lex_one("1");
+    expected_token = Token(TokenKind::INT, 0, 1, 1, 1, nullptr, new std::string("1"));
+    assert(*token == expected_token);
+
+    token = lex_one("4");
+    expected_token = Token(TokenKind::INT, 0, 1, 1, 1, nullptr, new std::string("4"));
+    assert(*token == expected_token);
+
+    token = lex_one("9");
+    expected_token = Token(TokenKind::INT, 0, 1, 1, 1, nullptr, new std::string("9"));
+    assert(*token == expected_token);
+
+    token = lex_one("42");
+    expected_token = Token(TokenKind::INT, 0, 2, 1, 1, nullptr, new std::string("42"));
+    assert(*token == expected_token);
+
+    token = lex_one("4.123");
+    expected_token = Token(TokenKind::FLOAT, 0, 5, 1, 1, nullptr, new std::string("4.123"));
+    assert(*token == expected_token);
+
+    token = lex_one("-4");
+    expected_token = Token(TokenKind::INT, 0, 2, 1, 1, nullptr, new std::string("-4"));
+    assert(*token == expected_token);
+
+    token = lex_one("-42");
+    expected_token = Token(TokenKind::INT, 0, 3, 1, 1, nullptr, new std::string("-42"));
+    assert(*token == expected_token);
+
+    token = lex_one("-4.123");
+    expected_token = Token(TokenKind::FLOAT, 0, 6, 1, 1, nullptr, new std::string("-4.123"));
+    assert(*token == expected_token);
+
+    token = lex_one("0.123");
+    expected_token = Token(TokenKind::FLOAT, 0, 5, 1, 1, nullptr, new std::string("0.123"));
+    assert(*token == expected_token);
+
+    token = lex_one("123e4");
+    expected_token = Token(TokenKind::FLOAT, 0, 5, 1, 1, nullptr, new std::string("123e4"));
+    assert(*token == expected_token);
+
+    token = lex_one("123E4");
+    expected_token = Token(TokenKind::FLOAT, 0, 5, 1, 1, nullptr, new std::string("123E4"));
+    assert(*token == expected_token);
+
+    token = lex_one("123e-4");
+    expected_token = Token(TokenKind::FLOAT, 0, 6, 1, 1, nullptr, new std::string("123e-4"));
+    assert(*token == expected_token);
+
+    token = lex_one("123e+4");
+    expected_token = Token(TokenKind::FLOAT, 0, 6, 1, 1, nullptr, new std::string("123e+4"));
+    assert(*token == expected_token);
+
+    token = lex_one("-1.123e4");
+    expected_token = Token(TokenKind::FLOAT, 0, 8, 1, 1, nullptr, new std::string("-1.123e4"));
+    assert(*token == expected_token);
+
+    token = lex_one("-1.123E4");
+    expected_token = Token(TokenKind::FLOAT, 0, 8, 1, 1, nullptr, new std::string("-1.123E4"));
+    assert(*token == expected_token);
+
+    token = lex_one("-1.123e-4");
+    expected_token = Token(TokenKind::FLOAT, 0, 9, 1, 1, nullptr, new std::string("-1.123e-4"));
+    assert(*token == expected_token);
+
+    token = lex_one("-1.123e+4");
+    expected_token = Token(TokenKind::FLOAT, 0, 9, 1, 1, nullptr, new std::string("-1.123e+4"));
+    assert(*token == expected_token);
+
+    token = lex_one("-1.123e4567");
+    expected_token = Token(TokenKind::FLOAT, 0, 11, 1, 1, nullptr, new std::string("-1.123e4567"));
+    assert(*token == expected_token);
 }
 
